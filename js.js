@@ -1,4 +1,4 @@
-$(document).ready(function () {
+//$(document).ready(function () {
     document.getElementById("notificationList").innerHTML = `
     <div class="notification-item">
         <div class="notification-title">מלאי נמוך</div>
@@ -400,6 +400,12 @@ $(document).ready(function () {
         }
     }
 
+    
+    // User Dropdown
+    function toggleUserDropdown() {
+        document.getElementById('userDropdown').classList.toggle('show');
+    }
+
     // Navigation
     function showPage(pageId) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -411,11 +417,6 @@ $(document).ready(function () {
         if (document.getElementById('userDropdown').classList.contains('show')) {
             toggleUserDropdown();
         }
-    }
-
-    // User Dropdown
-    function toggleUserDropdown() {
-        document.getElementById('userDropdown').classList.toggle('show');
     }
 
     // Notifications
@@ -1638,4 +1639,4 @@ $(document).ready(function () {
             closeEditModal();
         }
     });
-});
+// });
