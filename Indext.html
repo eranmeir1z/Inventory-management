@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>מערכת ניהול מלאי</title>
+        <link rel="stylesheet" href="css.css">
+        <link
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+            rel="stylesheet">
+        <script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
+        <script src="js.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    </head>
+    <body>
+        <!-- Admin Welcome Modal -->
+        <div id="adminWelcomeModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>הודעת מערכת</h3>
+                </div>
+                <div id="adminWelcomeMessage"
+                    style="line-height: 1.8; color: var(--text-secondary);"></div>
+                <button class="btn btn-primary" onclick="closeAdminWelcome()"
+                    style="margin-top: 24px; width: 100%;">
+                    <i class="fas fa-check"></i>
+                    הבנתי
+                </button>
+            </div>
+        </div>
+
+        <!-- Edit Product Modal -->
+        <div id="editProductModal" class="modal">
+            <div class="modal-content large">
+                <div class="modal-header">
+                    <h3><i class="fas fa-edit"></i> עריכת מוצר</h3>
+                    <button class="close-btn" onclick="closeEditModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>שם מוצר</label>
+                        <input type="text" id="editProductName">
+                    </div>
+                    <div class="form-group">
+                        <label>סוג</label>
+                        <select id="editProductType">
+                            <option>אלקטרוניקה</option>
+                            <option>ריהוט</option>
+                            <option>כלי עבודה</option>
+                            <option>חומרי גלם</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>כמות מינימלית</label>
+                        <input type="number" id="editProductMin">
+                    </div>
+                    <div class="form-group">
+                        <label>כמות זמינה</label>
+                        <input type="number" id="editProductQty">
+                    </div>
+                    <div class="form-group">
+                        <label>מחסן</label>
+                        <select id="editProductWarehouse"></select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button class="btn btn-success" onclick="saveProductEdit()"
+                        style="flex: 1;">
+                        <i class="fas fa-save"></i>
+                        שמור שינויים
+                    </button>
+                    <button class="btn btn-danger" onclick="closeEditModal()">
+                        <i class="fas fa-times"></i>
+                        ביטול
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1><i class="fas fa-boxes"></i> מערכת ניהול מלאי</h1>
+            </div>
+            <div class="header-right">
+                <button class="header-btn mobile-only" onclick="toggleSidebar()"
+                    title="תפריט">
+                    <i class="fas fa-bars"></i>
+                </button>
+
+                <button class="header-btn" onclick="toggleFullscreen()"
+                    title="מסך מלא">
+                    <i class="fas fa-expand"></i>
+                </button>
+
+                <button class="header-btn" onclick="toggleNotifications()"
+                    title="התראות">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge"
+                        id="notificationBadge">0</span>
+                </button>
+
+                <div class="user-profile" onclick="toggleUserDropdown()">
+
+                    <div class="user-avatar" id="headerAvatar">
+                        <span id="userInitials">AR</span>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">אדמין ראשי</div>
+                        <div class="user-role" id="userRole">@admin</div>
+                    </div>
+                    <i class="fas fa-chevron-down"
+                        style="font-size: 12px; color: var(--text-secondary);"></i>
+
+                    <div class="dropdown" id="userDropdown">
+                        <div class="dropdown-item"
+                            onclick="showPage('profile'); toggleUserDropdown();">
+                            <i class="fas fa-user"></i>
+                            <span>פרופיל אישי</span>
+                        </div>
+                        <div class="dropdown-item"
+                            onclick="showPage('settings'); toggleUserDropdown();">
+                            <i class="fas fa-cog"></i>
+                            <span>הגדרות</span>
+                        </div>
+                        <div class="dropdown-item" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>יציאה</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Notification Panel -->
+        <div class="notification-panel" id="notificationPanel">
+            <div class="notification-header">
+                <h3>התראות</h3>
+                <button class="icon-btn" onclick="toggleNotifications()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="notification-list" id="notificationList"></div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-cube"></i> ניהול מלאי</h2>
+            </div>
+            <nav>
+                <div class="nav-item active" onclick="showPage('dashboard')">
+                    <i class="fas fa-chart-line"></i>
+                    <span>דשבורד</span>
+                </div>
+                <div class="nav-item" onclick="showPage('products')">
+                    <i class="fas fa-box"></i>
+                    <span>מוצרים</span>
+                </div>
+                <div class="nav-item admin-only" onclick="showPage('users')">
+                    <i class="fas fa-users"></i>
+                    <span>ניהול משתמשים</span>
+                </div>
+                <div class="nav-item admin-only"
+                    onclick="showPage('warehouses')">
+                    <i class="fas fa-warehouse"></i>
+                    <span>ניהול מחסנים</span>
+                </div>
+                <div class="nav-item admin-only" onclick="showPage('reports')">
+                    <i class="fas fa-file-alt"></i>
+                    <span>דוחות</span>
+                </div>
+                <div class="nav-item admin-only" onclick="showPage('audit')">
+                    <i class="fas fa-history"></i>
+                    <span>Audit Log</span>
+                </div>
+                <div class="nav-item admin-only" onclick="showPage('backup')">
+                    <i class="fas fa-database"></i>
+                    <span>גיבוי ושחזור</span>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Page -->
+            <div id="dashboard" class="page active">
+                <h1 class="page-title">
+                    <i class="fas fa-chart-pie"></i>
+                    דשבורד
+                </h1>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="totalProducts">0</h3>
+                            <p>סה"כ מוצרים במלאי</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-warehouse"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>4</h3>
+                            <p>מחסנים פעילים</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon red">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="lowStockCount">0</h3>
+                            <p>מוצרים להזמנה</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon yellow">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="mostUsedProduct">-</h3>
+                            <p>מוצר נפוץ ביותר</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-grid" id="chartsContainer">
+                    <div class="chart-card" draggable="true"
+                        data-chart-id="usage">
+                        <div class="chart-card-header">
+                            <h3><i class="fas fa-chart-bar"></i> מוצרים
+                                פופולריים - יציאה מהמלאי</h3>
+                            <div class="drag-handle" title="גרור לשינוי מיקום">
+                                <i class="fas fa-grip-vertical"></i>
+                            </div>
+                        </div>
+                        <canvas id="usageChart"></canvas>
+                    </div>
+
+                    <div class="chart-card" draggable="true"
+                        data-chart-id="warehouse">
+                        <div class="chart-card-header">
+                            <h3><i class="fas fa-chart-pie"></i> התפלגות מלאי
+                                לפי מחסן</h3>
+                            <div class="drag-handle" title="גרור לשינוי מיקום">
+                                <i class="fas fa-grip-vertical"></i>
+                            </div>
+                        </div>
+                        <canvas id="warehouseChart"></canvas>
+                    </div>
+
+                    <div class="chart-card" draggable="true"
+                        data-chart-id="yearly">
+                        <div class="chart-card-header">
+                            <h3><i class="fas fa-chart-area"></i> מגמת השימוש
+                                השנתית - מוצר מוביל</h3>
+                            <div class="drag-handle" title="גרור לשינוי מיקום">
+                                <i class="fas fa-grip-vertical"></i>
+                            </div>
+                        </div>
+                        <canvas id="yearlyTrendChart"></canvas>
+                    </div>
+
+                    <div class="chart-card" draggable="true"
+                        data-chart-id="lowstock">
+                        <div class="chart-card-header">
+                            <h3><i class="fas fa-exclamation-triangle"
+                                    style="color: var(--danger-color);"></i>
+                                מוצרים הדורשים הזמנה</h3>
+                            <div class="drag-handle" title="גרור לשינוי מיקום">
+                                <i class="fas fa-grip-vertical"></i>
+                            </div>
+                        </div>
+                        <div id="lowStockList"
+                            style="max-height: 400px; overflow-y: auto;">
+                            <!-- Dynamic content -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Page -->
+            <div id="products" class="page">
+                <h1 class="page-title">
+                    <i class="fas fa-boxes"></i>
+                    ניהול מוצרים
+                </h1>
+
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="search-box">
+                            <input type="text" id="searchProduct"
+                                placeholder="🔍 חיפוש מוצר..."
+                                onkeyup="filterProducts()">
+                            <select id="filterWarehouse"
+                                onchange="filterProducts()">
+                                <option value>כל המחסנים</option>
+                                <option value="מחסן M">מחסן M</option>
+                                <option value="מחסן EM">מחסן EM</option>
+                                <option value="מחסן D">מחסן D</option>
+                                <option value="מחסן EF">מחסן EF</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary"
+                            onclick="toggleAddForm()">
+                            <i class="fas fa-plus"></i>
+                            הוסף מוצר
+                        </button>
+                    </div>
+
+                    <div class="add-form" id="addProductForm">
+                        <h3 style="margin-bottom: 24px; font-weight: 700;">
+                            <i class="fas fa-plus-circle"></i> הוסף מוצר חדש
+                        </h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>שם מוצר</label>
+                                <input type="text" id="newProductName"
+                                    placeholder="הזן שם מוצר">
+                            </div>
+                            <div class="form-group">
+                                <label>סוג</label>
+                                <select id="newProductType">
+                                    <option>אלקטרוניקה</option>
+                                    <option>ריהוט</option>
+                                    <option>כלי עבודה</option>
+                                    <option>חומרי גלם</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>כמות מינימלית</label>
+                                <input type="number" id="newProductMin"
+                                    placeholder="0">
+                            </div>
+                            <div class="form-group">
+                                <label>כמות זמינה</label>
+                                <input type="number" id="newProductQty"
+                                    placeholder="0">
+                            </div>
+                            <div class="form-group">
+                                <label>מחסן</label>
+                                <select id="newProductWarehouse"></select>
+                            </div>
+                        </div>
+                        <button class="btn btn-success" onclick="addProduct()"
+                            style="margin-top: 16px;">
+                            <i class="fas fa-check"></i>
+                            הוסף מוצר
+                        </button>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>שם מוצר</th>
+                                <th>סוג</th>
+                                <th>כמות מינימלית</th>
+                                <th>כמות זמינה</th>
+                                <th>מחסן</th>
+                                <th>פעולות</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Profile Page -->
+            <div id="profile" class="page">
+                <h1 class="page-title">
+                    <i class="fas fa-user-circle"></i>
+                    פרופיל אישי
+                </h1>
+
+                <div class="settings-section">
+                    <h3>פרטים אישיים</h3>
+                    <div class="form-group">
+                        <label>שם פרטי</label>
+                        <input type="text" id="profileFirstName" value="אדמין">
+                    </div>
+                    <div class="form-group">
+                        <label>שם משפחה</label>
+                        <input type="text" id="profileLastName" value="ראשי">
+                    </div>
+                    <div class="form-group">
+                        <label>שם משתמש</label>
+                        <input type="text" id="profileUsername" value="admin"
+                            readonly
+                            style="background-color: var(--border-color); cursor: not-allowed;">
+                        <small
+                            style="color: var(--text-secondary); font-size: 12px; margin-top: 4px; display: block;">
+                            <i class="fas fa-info-circle"></i> שם המשתמש לא ניתן
+                            לשינוי
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label>העלה תמונת פרופיל (PNG או JPG)</label>
+                        <div
+                            style="display: flex; flex-direction: column; gap: 12px;">
+                            <div class="profile-image-upload"
+                                style="padding: 20px; margin-bottom: 0;">
+                                <div class="profile-image-preview"
+                                    id="profileImagePreview"
+                                    style="width: 120px; height: 120px; font-size: 36px;">
+                                    <span id="previewInitials">AR</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 12px;">
+                                <div class="upload-btn-wrapper"
+                                    style="flex: 1;">
+                                    <button class="btn btn-primary"
+                                        style="width: 100%;">
+                                        <i class="fas fa-upload"></i>
+                                        העלה תמונה
+                                    </button>
+                                    <input type="file" id="profileImageInput"
+                                        accept="image/png, image/jpeg, image/jpg"
+                                        onchange="handleImageUpload(event)">
+                                </div>
+                                <button class="btn btn-danger"
+                                    onclick="removeProfileImage()"
+                                    id="removeImageBtn" style="display: none;">
+                                    <i class="fas fa-trash"></i>
+                                    הסר
+                                </button>
+                            </div>
+                            <small
+                                style="color: var(--text-secondary); font-size: 12px;">
+                                <i class="fas fa-info-circle"></i> פורמטים
+                                נתמכים: PNG, JPG | גודל מקסימלי: 5MB
+                            </small>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="updateProfile()">
+                        <i class="fas fa-save"></i>
+                        שמור שינויים
+                    </button>
+                </div>
+
+                <div class="settings-section">
+                    <h3>שינוי סיסמה</h3>
+                    <div class="form-group">
+                        <label>סיסמה נוכחית</label>
+                        <input type="password" id="currentPassword"
+                            placeholder="הזן סיסמה נוכחית">
+                    </div>
+                    <div class="form-group">
+                        <label>סיסמה חדשה</label>
+                        <input type="password" id="newPassword"
+                            placeholder="הזן סיסמה חדשה">
+                    </div>
+                    <div class="form-group">
+                        <label>אימות סיסמה חדשה</label>
+                        <input type="password" id="confirmPassword"
+                            placeholder="הזן שוב סיסמה חדשה">
+                    </div>
+                    <button class="btn btn-primary" onclick="changePassword()">
+                        <i class="fas fa-key"></i>
+                        עדכן סיסמה
+                    </button>
+                </div>
+
+                <div class="settings-section">
+                    <h3>פעילות אחרונה</h3>
+                    <div id="recentActivity">
+                        <div class="notification-item">
+                            <div class="notification-title">הוספת מוצר חדש</div>
+                            <div class="notification-text">נוסף מוצר
+                                "מחשב נייד Dell" למחסן M - לפני 2 שעות</div>
+                        </div>
+                        <div class="notification-item">
+                            <div class="notification-title">עדכון מלאי</div>
+                            <div class="notification-text">עודכנה כמות מוצר
+                                "כיסא משרדי" - לפני 5 שעות</div>
+                        </div>
+                        <div class="notification-item">
+                            <div class="notification-title">יצירת משתמש</div>
+                            <div class="notification-text">נוצר משתמש חדש
+                                "yossi" - לפני יום</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settings" class="page">
+                <h1 class="page-title">
+                    <i class="fas fa-cog"></i>
+                    הגדרות מערכת
+                </h1>
+
+                <div class="settings-section">
+                    <h3>תצוגה וממשק</h3>
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">מצב כהה</div>
+                            <div class="setting-description">החלף בין מצב בהיר
+                                לכהה</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="darkModeToggle"
+                                onchange="toggleDarkMode()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">רוחב פריסה</div>
+                            <div class="setting-description">בחר בין תצוגה מלאה
+                                למסגרת</div>
+                        </div>
+                        <select class="form-group select"
+                            onchange="toggleLayoutWidth(this.value)"
+                            style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+                            <option value="full">Full Width</option>
+                            <option value="boxed">Boxed</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">סגנון תפריט</div>
+                            <div class="setting-description">בחירת סגנון
+                                אינטראקציה</div>
+                        </div>
+                        <select class="form-group select"
+                            style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+                            <option>Menu Click</option>
+                            <option>Icon Hover</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>מיקום רכיבים</h3>
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">מיקום תפריט</div>
+                            <div class="setting-description">קבוע או גלילה</div>
+                        </div>
+                        <select class="form-group select"
+                            style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+                            <option>Fixed</option>
+                            <option>Scrollable</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <div>
+                            <div class="setting-label">מיקום Header</div>
+                            <div class="setting-description">קבוע או גלילה</div>
+                        </div>
+                        <select class="form-group select"
+                            style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+                            <option>Fixed</option>
+                            <option>Scrollable</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Management Page -->
+            <div id="users" class="page">
+                <h1 class="page-title">
+                    <i class="fas fa-users-cog"></i>
+                    ניהול משתמשים
+                </h1>
+
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 style="font-size: 18px; font-weight: 700;">משתמשי
+                            המערכת</h3>
+                        <button class="btn btn-primary"
+                            onclick="showAddUserModal()">
+                            <i class="fas fa-user-plus"></i>
+                            הוסף משתמש
+                        </button>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>פעולות</th>
+                                <th>הרשאות</th>
+                                <th>תאריך הצטרפות</th>
+                                <th>סטטוס</th>
+                                <th>שם מלא</th>
+                                <th>שם משתמש</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTable">
+                            <tr>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="icon-btn edit"
+                                            title="ערוך">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="icon-btn delete"
+                                            title="מחק" disabled
+                                            style="opacity: 0.3; cursor: not-allowed;">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                                <td><span
+                                        class="badge badge-danger">Admin</span></td>
+                                <td>01/01/2024</td>
+                                <td><span
+                                        class="badge badge-success">פעיל</span></td>
+                                <td><strong>אדמין ראשי</strong></td>
+                                <td><strong>admin</strong></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="icon-btn edit"
+                                            title="ערוך">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="icon-btn delete"
+                                            title="מחק">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                                <td><span
+                                        class="badge badge-warning">User</span></td>
+                                <td>15/02/2024</td>
+                                <td><span
+                                        class="badge badge-success">פעיל</span></td>
+                                <td><strong>יוסי כהן</strong></td>
+                                <td><strong>yossi</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Warehouses Management Page -->
+            <div id="warehouses" class="page">
+                <h1 class="page-title">
+                    <i class="fas fa-warehouse"></i>
+                    ניהול מחסנים
+                </h1>
+
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 style="font-size: 18px; font-weight: 700;">מחסנים
+                            במערכת</h3>
+                        <button class="btn btn-primary"
+                            onclick="showAddWarehouseModal()">
+                            <i class="fas fa-plus"></i>
+                            הוסף מחסן
+                        </button>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>פעולות</th>
+                                <th>מספר מוצרים</th>
+                                <th>סה"כ כמות</th>
+                                <th>שם מחסן</th>
+                            </tr>
+                        </thead>
+                        <tbody id="warehousesTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Reports Page -->
+            <div id="reports" class="page">
+                <h1 class="page-title">
+                    <i class="fas fa-file-invoice"></i>
+                    דוחות וניתוחים
+                </h1>
+
+                <div class="stats-grid">
+                    <div class="stat-card" onclick="exportReport('inventory')"
+                        style="cursor: pointer;">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-file-export"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 style="font-size: 18px;">דוח מלאי</h3>
+                            <p>ייצוא כל המוצרים והמלאי</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card" onclick="exportReport('lowstock')"
+                        style="cursor: pointer;">
+                        <div class="stat-icon red">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 style="font-size: 18px;">מוצרים חסרים</h3>
+                            <p>דוח מוצרים תחת המינימום</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card" onclick="exportReport('usage')"
+                        style="cursor: pointer;">
+                        <div class="stat-icon green">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 style="font-size: 18px;">דוח תנועות</h3>
+                            <p>כל התנועות במלאי</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card" onclick="exportReport('warehouse')"
+                        style="cursor: pointer;">
+                        <div class="stat-icon yellow">
+                            <i class="fas fa-warehouse"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 style="font-size: 18px;">דוח מחסנים</h3>
+                            <p>התפלגות לפי מחסן</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>הודעת מערכת לכל המשתמשים</h3>
+                    <div class="form-group">
+                        <label>כתוב הודעה שתופיע לכל המשתמשים בכניסה</label>
+                        <textarea id="adminMessage" rows="4"
+                            placeholder="לדוגמה: ברוכים הבאים לגרסה החדשה של ניהול המלאי..."></textarea>
+                    </div>
+                    <button class="btn btn-primary"
+                        onclick="sendAdminMessage()">
+                        <i class="fas fa-paper-plane"></i>
+                        שלח הודעה לכולם
+                    </button>
+                </div>
+            </div>
+
+            <!-- Audit Log Page -->
+            <div id="audit" class="page">
+                <h1 class="page-title">
+                    <i class="fas fa-clipboard-list"></i>
+                    יומן פעילות (Audit Log)
+                </h1>
+
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="search-box">
+                            <input type="text"
+                                placeholder="🔍 חיפוש בפעילות...">
+                            <select>
+                                <option>כל הפעולות</option>
+                                <option>הוספת מוצר</option>
+                                <option>עדכון מלאי</option>
+                                <option>מחיקה</option>
+                                <option>התחברות</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>פרטים</th>
+                                <th>תאריך ושעה</th>
+                                <th>פעולה</th>
+                                <th>משתמש</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTable">
+                            <tr>
+                                <td>נוסף מוצר "מחשב נייד Dell" במחסן M</td>
+                                <td>23/10/2025 14:30</td>
+                                <td><span
+                                        class="badge badge-success">הוספה</span></td>
+                                <td><strong>admin</strong> (אדמין ראשי)</td>
+                            </tr>
+                            <tr>
+                                <td>עודכנה כמות מוצר "כיסא משרדי" מ-50 ל-45</td>
+                                <td>23/10/2025 12:15</td>
+                                <td><span
+                                        class="badge badge-warning">עדכון</span></td>
+                                <td><strong>yossi</strong> (יוסי כהן)</td>
+                            </tr>
+                            <tr>
+                                <td>נוצר משתמש חדש "dani"</td>
+                                <td>22/10/2025 16:45</td>
+                                <td><span
+                                        class="badge badge-success">יצירה</span></td>
+                                <td><strong>admin</strong> (אדמין ראשי)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Backup Page -->
+            <div id="backup" class="page">
+                <h1 class="page-title">
+                    <i class="fas fa-server"></i>
+                    גיבוי ושחזור
+                </h1>
+
+                <div class="settings-section">
+                    <h3>יצירת גיבוי חדש</h3>
+                    <p
+                        style="color: var(--text-secondary); margin-bottom: 20px;">
+                        צור גיבוי מלא של כל נתוני המערכת כולל מלאי, משתמשים
+                        והגדרות
+                    </p>
+                    <button class="btn btn-success" onclick="createBackup()">
+                        <i class="fas fa-download"></i>
+                        צור גיבוי עכשיו
+                    </button>
+                </div>
+
+                <div class="settings-section">
+                    <h3>גיבויים קיימים</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>פעולות</th>
+                                <th>גודל</th>
+                                <th>תאריך</th>
+                                <th>שם קובץ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-primary"
+                                            style="padding: 8px 16px; font-size: 12px;">
+                                            <i class="fas fa-undo"></i>
+                                            שחזר
+                                        </button>
+                                        <button class="btn btn-danger"
+                                            style="padding: 8px 16px; font-size: 12px;">
+                                            <i class="fas fa-trash"></i>
+                                            מחק
+                                        </button>
+                                    </div>
+                                </td>
+                                <td>2.4 MB</td>
+                                <td>23/10/2025 00:00</td>
+                                <td><strong>backup_23_10_2025.json</strong></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-primary"
+                                            style="padding: 8px 16px; font-size: 12px;">
+                                            <i class="fas fa-undo"></i>
+                                            שחזר
+                                        </button>
+                                        <button class="btn btn-danger"
+                                            style="padding: 8px 16px; font-size: 12px;">
+                                            <i class="fas fa-trash"></i>
+                                            מחק
+                                        </button>
+                                    </div>
+                                </td>
+                                <td>2.3 MB</td>
+                                <td>22/10/2025 00:00</td>
+                                <td><strong>backup_22_10_2025.json</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+     
+    </body>
+</html>
